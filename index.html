@@ -1,0 +1,406 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<script>
+/* v5 safety net: runs before everything else and does not depend on the main script */
+(function () {
+  var V = 'v7'; window.__V = V;
+  function box(m) { try { var d = document.getElementById('dbg'); if (!d) { d = document.createElement('div'); d.id = 'dbg'; d.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#7c2d12;color:#fff;border:1px solid #fb923c;border-radius:10px;padding:10px 12px;font:12px/1.5 monospace;white-space:pre-wrap;word-break:break-word'; (document.body || document.documentElement).appendChild(d); } d.textContent += m + '\n'; } catch (e) {} }
+  window.__box = box;
+  addEventListener('error', function (e) { box('JS error: ' + (e.message || '') + ' (line ' + (e.lineno || '?') + ')'); });
+  addEventListener('unhandledrejection', function (e) { box('Promise error: ' + ((e.reason && e.reason.message) || e.reason)); });
+  /* once per version: remove old service workers and caches that may serve an outdated copy */
+  try {
+    if (localStorage.getItem('gz_ver') !== V) {
+      localStorage.setItem('gz_ver', V);
+      var jobs = [];
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+      if (window.caches && caches.keys) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+      Promise.all(jobs).then(function () { location.reload(); }, function () {});
+    }
+  } catch (e) {}
+  setTimeout(function () { if (!window.__boot) box('The app script did not start (' + V + '). ready=' + document.readyState + ' scripts=' + document.scripts.length + ' end=' + (document.getElementById('endmark') ? 1 : 0) + ' appjs=' + (window.__appLoaded ? 1 : 0) + '. Please send a screenshot of this box.'); }, 8000);
+})();
+/* GitHub login settings + Connect button (kept here so the button works on its own) */
+const GH_CLIENT_ID = 'Ov23liyAMYYbO7zZyBHG';
+const GH_AUTH_PROXY = 'https://zipup-auth.hakarjuwel.workers.dev';
+const GH_SCOPE = 'repo';
+const redirUri = () => location.origin + location.pathname;
+function ghGo() {
+  var er = document.getElementById('lerr');
+  if (!GH_CLIENT_ID || !GH_AUTH_PROXY) { er.textContent = 'Connect with GitHub is not set up yet. Use a token for now.'; return; }
+  var s;
+  try { var a = new Uint8Array(16); crypto.getRandomValues(a); s = Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); sessionStorage.setItem('gz_state', s); }
+  catch (e) { er.textContent = 'This browser blocks storage. Use a token instead.'; return; }
+  location.href = 'https://github.com/login/oauth/authorize?' + new URLSearchParams({ client_id: GH_CLIENT_ID, scope: GH_SCOPE, state: s, redirect_uri: redirUri() });
+}
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>github-zip-up</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#030a1c">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&amp;family=Space+Mono:wght@400;700&amp;family=Hind+Siliguri:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+/* ONE fixed theme: red + hacker. No theme switching. */
+:root{--fg:#e6f4ff;--mut:#7fa3c7;--card:rgba(255,255,255,.06);--ac:#38bdf8;--ac2:#bae6fd;--vi:#1e40af;--dng:#fb923c;--ok:#4ade80;--bd:color-mix(in srgb,var(--ac) 30%,transparent)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font:13px/1.5 "Space Mono","Hind Siliguri",monospace;color:var(--fg);background:#030a1c;overflow-x:hidden}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px) 0 0/26px 26px,#030a1c}
+.bg svg{width:100%;height:100%}
+.b1{animation:fl 14s ease-in-out infinite}.b2{animation:fl 19s ease-in-out infinite reverse}.b3{animation:fl 23s ease-in-out infinite}
+@keyframes fl{0%,100%{transform:translate(0,0)}50%{transform:translate(70px,-60px)}}
+#rain{position:absolute;inset:0;width:100%;height:100%;opacity:.55;pointer-events:none}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes shine{to{background-position:200% center}}
+@keyframes rev{from{opacity:0;transform:translateY(8px) scale(.8)}to{opacity:1;transform:none}}
+@keyframes draw{from{stroke-dasharray:0 252}}
+@keyframes blink{50%{opacity:0}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ac) 60%,transparent)}70%{box-shadow:0 0 0 12px transparent}}
+button,input,textarea,select{font:inherit;color:inherit}
+button{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:6px 11px;cursor:pointer;transition:.2s}
+button:hover{border-color:var(--ac);transform:translateY(-1px)}
+button:disabled{opacity:.5;cursor:default;transform:none}
+button.pri{background:linear-gradient(135deg,var(--ac),var(--vi));border:0;color:#fff;font-weight:700}
+button.pri:hover{box-shadow:0 6px 24px color-mix(in srgb,var(--ac) 55%,transparent)}
+button.dng{color:var(--dng)}
+input[type=text],input[type=password],textarea,select{width:100%;background:rgba(0,0,0,.5);border:1px solid var(--bd);border-radius:8px;padding:8px 11px}
+select{appearance:none}
+select option{background:#08122b}
+:focus-visible{outline:2px solid var(--ac2);outline-offset:1px}
+.hide{display:none!important}
+.mono{font-family:"Space Mono",monospace}
+.disp{font-family:"Orbitron","Space Mono","Hind Siliguri",monospace;font-weight:900;letter-spacing:.03em}
+.grad{background:linear-gradient(90deg,var(--ac),var(--ac2),#60a5fa,var(--ac));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 4s linear infinite}
+.card{background:rgba(5,14,40,.72);border:1px solid var(--bd);border-radius:10px;backdrop-filter:blur(8px);animation:up .5s backwards}
+.tilt{transition:transform .15s ease-out,border-color .2s,box-shadow .2s;will-change:transform}
+.err-t{color:var(--dng)}
+.wv{display:inline-block}
+.wv span{display:inline-block;animation:rev .5s backwards}
+.cur{display:inline-block;width:2px;height:1em;background:var(--ac2);margin-left:3px;vertical-align:-2px;animation:blink 1s infinite}
+.scene{--s:64px;width:var(--s);height:var(--s);margin:4px auto 10px}
+.scene.mini{--s:30px;margin:0}
+.gl{width:100%;height:100%;overflow:visible;animation:glf 4s ease-in-out infinite}
+.gl .ring{transform-origin:50px 50px;animation:glr 14s linear infinite}
+@keyframes glf{50%{transform:translateY(-5px)}}
+@keyframes glr{to{transform:rotate(360deg)}}
+#login{max-width:400px;margin:5vh auto 0;padding:22px 18px;text-align:center;position:relative}
+#login h1{font-size:22px;margin:0;line-height:1.2}
+.tagl{height:22px;color:var(--ac2);font-size:12px;margin:2px 0 12px}
+.pw{position:relative}
+.pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:3px 8px}
+label.l{display:block;margin:12px 0 5px;font:700 10px "Space Mono",monospace;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;text-align:left}
+.stepper{display:flex;justify-content:space-between;gap:8px;margin:16px 0 6px}
+.stepper div{flex:1;font-size:11px;color:var(--mut);padding:8px 5px;border-radius:10px;border:1px dashed var(--bd)}
+.stepper b{display:grid;place-items:center;width:22px;height:22px;margin:0 auto 4px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--vi));color:#fff;animation:pulse 2.4s infinite}
+.stepper div:nth-child(2) b{animation-delay:.8s}.stepper div:nth-child(3) b{animation-delay:1.6s}
+.lnk{color:var(--ac2);font-size:12px}
+.tokbtn{display:inline-block;font:700 13px "Space Mono","Hind Siliguri",monospace;color:#fff;background:linear-gradient(135deg,#0ea5e9,#2563eb);padding:8px 16px;border-radius:99px;text-decoration:none;animation:tokpulse 1.2s infinite,tokshake 3s infinite}
+@keyframes tokpulse{0%{box-shadow:0 0 0 0 rgba(56,189,248,.7)}70%{box-shadow:0 0 0 18px rgba(56,189,248,0)}100%{box-shadow:0 0 0 0 rgba(56,189,248,0)}}
+@keyframes tokshake{0%,86%,100%{transform:none}88%{transform:scale(1.12) rotate(-3deg)}92%{transform:scale(1.12) rotate(3deg)}96%{transform:scale(1.08) rotate(-2deg)}}
+.credit{display:block;font:700 clamp(12px,3.2vw,14px)/1.4 "Space Mono","Segoe UI Symbol",sans-serif;filter:drop-shadow(0 0 10px color-mix(in srgb,var(--ac) 55%,transparent))}
+.credit small{display:block;font:10px "Space Mono",monospace;letter-spacing:.2em;color:var(--mut);text-transform:uppercase;margin-bottom:2px}
+.jimg{display:block;width:70px;height:70px;margin:0 auto 10px;border-radius:50%;object-fit:cover;border:2px solid var(--ac);box-shadow:0 0 26px color-mix(in srgb,var(--ac) 55%,transparent)}
+.foot{text-align:center;margin:24px 0 20px;animation:up .8s backwards}
+.foot .credit{font-size:clamp(12px,3.4vw,15px)}
+.mini-c{font-size:10px;color:var(--mut)}
+#app{max-width:1000px;margin:0 auto;padding:0 12px}
+nav{display:flex;align-items:center;gap:10px;padding:12px 2px;position:relative}
+nav .brand{flex:1;display:flex;align-items:center;gap:10px}
+nav b{font-size:15px;display:block;line-height:1.1}
+#av{width:36px;height:36px;border-radius:50%;padding:0;border:2px solid var(--ac);overflow:hidden}
+#av img{width:100%;height:100%;display:block}
+#menu{position:absolute;right:2px;top:58px;z-index:20;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:180px;animation:pop .2s}
+.hero{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:16px;margin:6px 0 12px;background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 20%,transparent),color-mix(in srgb,var(--vi) 14%,transparent))}
+.hero h2{margin:0;font-size:18px;line-height:1.2}
+.hero .tagl{margin:4px 0 12px}
+.dn{width:84px;height:84px;display:block}
+.dn .arc{animation:draw 1.3s ease-out backwards}
+.dw{position:relative}
+.dw b{position:absolute;inset:0;display:grid;place-items:center;font-size:17px}
+#stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px;margin-bottom:12px}
+.tile{padding:10px;border-top:3px solid hsl(var(--h) 90% 62%);background:linear-gradient(180deg,hsl(var(--h) 90% 62%/.13),transparent)}
+.tile b{display:block;font-size:18px;line-height:1.1;color:hsl(var(--h) 95% 74%)}
+.tile span{font:11px "Space Mono",monospace;color:var(--mut)}
+.lang{padding:12px;margin-bottom:12px}
+#lbar{display:flex;gap:3px;height:10px;border-radius:9px;overflow:hidden}
+#lbar button{padding:0;border:0;border-radius:0;transition:flex .3s,opacity .2s}
+#lbar button:not(.on){opacity:.8}#lbar button.on{outline:2px solid #fff;outline-offset:-2px}
+#llegend{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#llegend button{border-radius:99px;padding:2px 10px;font-size:11px}
+#llegend button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--ac)}
+.tool{display:flex;gap:8px;margin-bottom:10px}
+.tool input{flex:1}
+.tool select{width:auto}
+#seg{display:flex;gap:4px;padding:4px;margin-bottom:10px;overflow:auto;border-radius:10px}
+#seg button{flex:1;border:0;background:none;white-space:nowrap}
+#seg button.on{background:linear-gradient(135deg,var(--ac),var(--vi));color:#fff;font-weight:700}
+.sec{display:flex;justify-content:space-between;font:700 11px "Space Mono",monospace;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;margin:8px 2px 10px}
+#rlist{display:grid;gap:10px;grid-template-columns:1fr}
+@media(min-width:700px){#rlist:not(.l1){grid-template-columns:1fr 1fr}}
+.rc{display:flex;gap:12px;padding:12px;cursor:pointer;border-left:4px solid hsl(var(--h) 90% 62%);position:relative}
+.rc:hover{border-color:hsl(var(--h) 90% 66%);box-shadow:0 14px 34px hsl(var(--h) 90% 60%/.25)}
+.rc .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:17px;flex:none;background:hsl(var(--h) 85% 60%/.2)}
+.rc b{font-size:14px;word-break:break-all}
+.rb{min-width:0;flex:1;padding-right:30px}
+.pin{position:absolute;right:8px;top:8px;padding:2px 7px;border:0;background:none;font-size:14px}
+.pill{font:10px "Space Mono",monospace;padding:2px 8px;border-radius:99px;border:1px solid var(--bd);margin-left:7px;vertical-align:middle}
+.pill.pu{color:var(--ok)}.pill.pr{color:#fbbf24}.pill.fk{color:var(--ac2)}
+.meta{color:var(--mut);font-size:11px;display:flex;gap:10px;flex-wrap:wrap;margin-top:3px}
+.rh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
+.rh h2{margin:0;font-size:15px;flex:1;min-width:120px;word-break:break-all}
+.rh select{width:auto;max-width:150px}
+#tabs{display:flex;gap:6px;margin-bottom:12px}
+#tabs button{flex:1;border-radius:99px}
+#tabs button.on{background:linear-gradient(135deg,var(--ac),var(--vi));border:0;color:#fff;font-weight:700}
+.crumb{margin-bottom:10px;font-weight:500;word-break:break-all}
+.crumb span{cursor:pointer;color:var(--ac2)}
+.list{border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--card)}
+.list.drag{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 14%,transparent)}
+.row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--bd);animation:up .4s backwards}
+.row:last-child{border:0}
+.row .nm{flex:1;cursor:pointer;word-break:break-all}
+.row .nm:hover{color:var(--ac2)}
+.row small{color:var(--mut)}
+.row input{width:17px;height:17px;accent-color:var(--ac)}
+.empty{padding:26px;text-align:center;color:var(--mut)}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.facts div{padding:9px 11px;border:1px solid var(--bd);border-radius:10px;background:var(--card)}
+.facts small{display:block;color:var(--mut);font:10px "Space Mono",monospace}
+#selbar{position:sticky;top:6px;z-index:8;display:flex;gap:8px;align-items:center;padding:9px 12px;margin-bottom:10px}
+#selbar span{flex:1}
+#selbar label.ck{margin:0;padding:6px 10px}
+.modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.78);backdrop-filter:blur(6px);display:grid;place-items:center;padding:12px;overflow:auto}
+/* sheet is a flex column: header + footer always visible, only the middle scrolls (Reload never hides) */
+.sheet{width:100%;max-width:420px;max-height:92vh;display:flex;flex-direction:column;background:#08122b;border:1px solid var(--bd);border-radius:14px;animation:pop .25s}
+.sheet .mb{overflow:auto;flex:1;min-height:0}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--bd);flex:none}
+.mb{padding:14px 16px}
+.mf{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--bd);flex:none}
+.mf button{flex:1}
+.x{border:0;background:none;font-size:15px;padding:2px 8px}
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;overflow:auto}
+.agrid button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border-radius:12px;border-color:hsl(var(--h) 80% 60%/.4);background:hsl(var(--h) 80% 60%/.1)}
+.agrid button i{font-style:normal;font-size:19px}
+.drop{border:2px dashed var(--bd);border-radius:12px;padding:20px 12px;text-align:center;cursor:pointer;transition:.2s}
+.drop:hover,.drop.drag{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,transparent)}
+.drop .ic{font-size:22px}
+.drop small{display:block;color:var(--mut)}
+/* chosen ZIP size badge */
+#zsize{display:inline-block;margin-top:10px;padding:5px 14px;border-radius:99px;font:900 14px "Orbitron","Space Mono",monospace;letter-spacing:.04em;color:#fff;background:linear-gradient(135deg,var(--ac),var(--vi));text-shadow:0 1px 0 #0a2f66,0 2px 0 #082552,0 3px 4px rgba(0,0,0,.5);animation:pop .3s}
+.ck{display:flex;gap:10px;align-items:center;padding:9px 11px;margin-top:8px;border:1px solid var(--bd);border-radius:8px;font:700 11px "Space Mono",monospace;cursor:pointer}
+.ck input{width:17px;height:17px;accent-color:var(--ac)}
+#prog{margin-top:12px}
+#track{height:9px;border-radius:9px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:6px}
+#bar{height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2),#60a5fa,var(--ac));background-size:200% 100%;animation:shine 1.4s linear infinite;transition:width .2s}
+#flist{margin-top:10px;max-height:130px;overflow:auto;border:1px solid var(--bd);border-radius:8px;background:rgba(0,0,0,.4);scroll-behavior:smooth}
+#flist div{display:flex;gap:8px;align-items:center;padding:5px 9px;border-bottom:1px solid var(--bd);font:11px "Space Mono",monospace;animation:rev .25s backwards}
+#flist div:last-child{border:0}
+#flist i{font-style:normal;flex:none;width:26px;text-align:center;font-weight:700}
+#flist span{flex:1;min-width:0;word-break:break-all}
+#flist small{flex:none;color:var(--mut)}
+#flist .wip i{color:var(--ac2);animation:blink 1s infinite}
+#flist .ok i{color:var(--ok);font-size:13px}
+#flist .sk{color:var(--mut)}
+#flist .er i{color:var(--dng)}
+#flist .up i{color:var(--ac2)}
+#imgv{max-width:100%;max-height:55vh;display:block;margin:0 auto;border-radius:10px;background:repeating-conic-gradient(#222 0 25%,#333 0 50%) 0 0/16px 16px}
+#status{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0b1d44;border:1px solid var(--ac);padding:8px 13px;border-radius:10px;max-width:90vw;z-index:50;font-size:12px;animation:pop .2s}
+#status.err{background:#7c2d12;border-color:var(--dng)}
+#editor{position:fixed;inset:0;z-index:40;background:#030a1c;padding:14px;display:flex;flex-direction:column;gap:10px}
+#editor textarea{flex:1;font:12px/1.5 "Space Mono",monospace;resize:none;white-space:pre;color:#93c5fd}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.df{margin-bottom:12px}.df pre{overflow:auto;margin:6px 0 0;font:11px/1.5 "Space Mono",monospace;background:rgba(0,0,0,.5);padding:8px;border-radius:8px;color:#93c5fd}
+.df pre span{display:block}.ad{color:#4ade80;background:rgba(103,232,249,.12)}.rm{color:#fdba74;background:rgba(251,146,60,.12)}
+.lsw{position:absolute;top:12px;right:12px;display:flex;gap:4px}
+.lsw button,.lsw2 button{padding:3px 9px;font-size:11px}
+.lsw2{display:flex;gap:6px;justify-content:center}
+.lsw button.on,.lsw2 button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.about{text-align:left;margin:4px 0 14px;padding:12px;border:1px solid var(--bd);border-radius:10px;background:color-mix(in srgb,var(--ac) 8%,transparent);font-size:12px}
+.about b{color:var(--ac2)}
+.about p{margin:6px 0 8px}
+.about ul{margin:0;padding:0;list-style:none;color:var(--mut)}
+.about li{margin:4px 0}
+#off{background:#5c4100;border:1px solid #fbbf24;border-radius:10px;padding:8px 12px;margin:6px 0 10px;text-align:center}
+#ebody{flex:1;display:flex;gap:10px;min-height:0}
+#ebody>*{flex:1;min-width:0;overflow:auto}
+#ehl,#emd{background:rgba(0,0,0,.45);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin:0}
+#ehl{font:12px/1.5 "Space Mono",monospace;white-space:pre;color:#93c5fd}
+#emd{color:#93c5fd}
+#emd h1,#emd h2,#emd h3{color:var(--ac2);margin:.6em 0 .3em}
+#emd code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:5px;font-family:"Space Mono",monospace}
+#emd pre{background:rgba(0,0,0,.5);padding:10px;border-radius:8px;overflow:auto}
+#emd img{max-width:100%}#emd a{color:var(--ac2)}
+.hc{color:#5b7ba8}.hs{color:#67e8f9}.ht{color:var(--ac2)}.hk{color:#7dd3fc}.hn{color:#ffb86b}
+.mb textarea{min-height:90px}
+/* big Upload ZIP button inside a repo */
+#selb,#actb{order:3}
+#zipb{order:4;flex:1 1 100%;font-size:16px;padding:14px 14px;border-radius:12px;letter-spacing:.02em;animation:zipglow 1.8s ease-in-out infinite}
+@keyframes zipglow{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ac) 55%,transparent)}50%{box-shadow:0 0 26px 3px color-mix(in srgb,var(--ac) 55%,transparent)}}
+/* hacker prefixes */
+#login h1::before{content:"> ";color:var(--ac2)}
+.hero h2::before{content:"> ";color:var(--ac2)}
+.sec span:first-child::before{content:"// ";color:var(--ac2)}
+.rc b::before{content:"$ ";color:var(--ac2)}
+.about b::before{content:"// ";color:var(--ac2)}
+label.l::before{content:"$ ";color:var(--ac2)}
+.tile span::before{content:"// ";color:var(--ac2)}
+.crumb::before{content:"$ cd ";color:var(--ac2)}
+.empty::before{content:"// ";color:var(--ac2)}
+#connect::before{content:"> ";margin-right:4px}
+#connect{font-size:15px;font-weight:700;letter-spacing:.02em;padding:12px 12px!important;border-radius:10px;position:relative;overflow:hidden;background:linear-gradient(90deg,var(--ac),var(--ac2),var(--vi),var(--ac));background-size:200% auto;animation:shine 3s linear infinite,gopulse 1.8s ease-in-out infinite}
+#connect::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:sweep 2.4s ease-in-out infinite}
+@keyframes gopulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 color-mix(in srgb,var(--ac) 55%,transparent)}50%{transform:scale(1.03);box-shadow:0 0 28px 4px color-mix(in srgb,var(--ac) 55%,transparent)}}
+@keyframes sweep{0%{left:-60%}60%,100%{left:130%}}
+
+/* ===== Login method switch: two options side by side (Connect with GitHub | Token) ===== */
+.lmode{display:flex;gap:8px;margin:6px 0 4px;padding:4px;border:1px solid var(--bd);border-radius:12px;background:rgba(0,0,0,.35)}
+.lmode button{flex:1;border:0;background:none;padding:10px 6px;border-radius:9px;font-weight:700;font-size:12px}
+.lmode button.on{background:linear-gradient(135deg,var(--ac),var(--vi));color:#fff}
+.lpanel{animation:pop .25s}
+.ghbtn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;margin-top:14px;padding:14px 12px;border-radius:10px;font-size:15px;font-weight:700;background:#24292f;border:1px solid #6e7681;color:#fff;text-shadow:none!important}
+.ghbtn:hover{background:#2f353d;border-color:#fff}
+.ghbtn svg{width:26px;height:26px;fill:#fff;flex:none;filter:none}
+.ghnote{font-size:11px;color:var(--mut);margin:10px 0 0;text-align:left}
+.ghnote b{color:var(--ac2)}
+
+
+/* ===== WhatsApp help button (compact) ===== */
+.wa-w{margin-top:10px;text-align:center}
+.wa{display:inline-flex;align-items:center;gap:8px;padding:5px 14px 5px 9px;border-radius:99px;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;text-decoration:none;text-align:left;box-shadow:0 3px 12px rgba(37,211,102,.35);animation:waRing 2s ease-out infinite,waFloat 3.2s ease-in-out infinite;transition:transform .2s}
+.wa:hover{transform:scale(1.05)}
+.wa svg{width:20px;height:20px;fill:#fff;flex:none;animation:waWig 3.6s ease-in-out infinite;transform-origin:50% 60%}
+.wa-b{display:block;line-height:1.2}
+.wa-t{display:block;font:700 10px "Space Mono","Hind Siliguri",monospace;color:#fff}
+.wa-n{display:block;font:900 12px "Orbitron","Space Mono",monospace;letter-spacing:.05em;color:#eafff1}
+@keyframes waRing{0%{box-shadow:0 0 0 0 rgba(37,211,102,.6),0 3px 12px rgba(37,211,102,.35)}70%,100%{box-shadow:0 0 0 8px rgba(37,211,102,0),0 3px 12px rgba(37,211,102,.35)}}
+@keyframes waFloat{0%,100%{translate:0 0}50%{translate:0 -2px}}
+@keyframes waWig{0%,80%,100%{transform:rotate(0)}84%{transform:rotate(-16deg) scale(1.12)}88%{transform:rotate(14deg) scale(1.12)}92%{transform:rotate(-10deg)}96%{transform:rotate(6deg)}}
+
+/* ===== 3D text: layered extrusion shadows ===== */
+/* big headings: thick extrude + soft glow */
+#login h1,.hero h2{text-shadow:0 1px 0 #1e6fb8,0 2px 0 #19599a,0 3px 0 #134680,0 4px 0 #0e3566,0 5px 0 #0a2850,0 9px 12px rgba(0,0,0,.65),0 0 24px rgba(56,189,248,.35)}
+/* medium / small text: light extrude */
+.rh h2,.dw b,.tile b,.rc b,.mh b,.sec,.stepper div,#tabs button.on,button.pri,.tokbtn,#connect,#seg button.on,.agrid button,label.l,.about b,.crumb,.drop b,.lmode button.on{text-shadow:0 1px 0 rgba(10,47,102,.95),0 2px 0 rgba(8,37,82,.9),0 3px 4px rgba(0,0,0,.55)}
+.tile b{font-family:"Orbitron","Space Mono",monospace;font-weight:900;font-size:17px}
+.rc b,.rh h2,.mh b{font-family:"Orbitron","Space Mono","Hind Siliguri",monospace;font-weight:700;letter-spacing:.02em}
+/* gradient text can't carry text-shadow, so it gets stacked drop-shadows instead */
+.grad{filter:drop-shadow(0 1px 0 #0b3b7a) drop-shadow(0 2px 0 #0a2f66) drop-shadow(0 3px 0 #082552) drop-shadow(0 6px 6px rgba(0,0,0,.6))}
+/* page-wide polish for Bengali text */
+body,button,input,textarea,select{font-family:"Space Mono","Hind Siliguri",monospace}
+:lang(bn) body{font-family:"Hind Siliguri","Space Mono",sans-serif}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="bg"><svg viewBox="0 0 800 800" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="g1"><stop offset="0" style="stop-color:var(--ac)" stop-opacity=".45"></stop><stop offset="1" style="stop-color:var(--ac)" stop-opacity="0"></stop></radialGradient><radialGradient id="g2"><stop offset="0" style="stop-color:var(--vi)" stop-opacity=".55"></stop><stop offset="1" style="stop-color:var(--vi)" stop-opacity="0"></stop></radialGradient><radialGradient id="g3"><stop offset="0" style="stop-color:var(--ac2)" stop-opacity=".3"></stop><stop offset="1" style="stop-color:var(--ac2)" stop-opacity="0"></stop></radialGradient></defs><circle class="b1" cx="120" cy="150" r="340" fill="url(#g1)"></circle><circle class="b2" cx="700" cy="480" r="360" fill="url(#g2)"></circle><circle class="b3" cx="260" cy="760" r="300" fill="url(#g3)"></circle></svg><canvas id="rain" class="hide"></canvas></div>
+
+<section id="login" class="card">
+  <div class="lsw"><button data-lg="en">EN</button><button data-lg="bn">বাং</button></div>
+  <div class="scene"></div>
+  <h1 class="disp" id="ltitle"></h1>
+  <div class="tagl mono"><span id="tw"></span><span class="cur"></span></div>
+  <div class="about"><b>What is this?</b><p>github-zip-up is a simple web tool to upload ZIP files to GitHub and manage your repositories from your phone or browser. No git commands, no installs.</p><ul><li>📦 Upload a ZIP and it unpacks straight into your repo</li><li>⚡ Fast uploads that resume by themselves if your internet drops</li><li>🖼️ Edit, rename, delete files, upload images and whole folders</li><li>🔐 Your token never leaves your browser</li></ul></div>
+
+  <!-- two ways to log in, one on each side -->
+  <div class="lmode" id="lmode"><button type="button" data-lm="gh">🐙 Connect with GitHub</button><button type="button" data-lm="tok">🔑 Use a token</button></div>
+
+  <div class="lpanel" id="pGh">
+    <button type="button" class="ghbtn" id="ghconnect" onclick="ghGo()"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg><span>Continue with GitHub</span></button>
+    <p class="ghnote">✅ <b>No token needed.</b> You will go to GitHub, press Authorize once, and come straight back here, logged in.</p>
+    <div class="stepper"><div><b>1</b>Tap Continue</div><div><b>2</b>Authorize on GitHub</div><div><b>3</b>Push files</div></div>
+  </div>
+
+  <div class="lpanel hide" id="pTok">
+    <label class="l" for="tok">Access token</label>
+    <div class="pw"><input id="tok" type="password" autocomplete="off" placeholder="ghp_••••••••••••••••"><button id="eye" type="button">👁</button></div>
+    <p style="text-align:center;margin:14px 0 8px"><a class="tokbtn" href="https://github.com/settings/tokens/new?scopes=repo&amp;description=github-zip-up" target="_blank" rel="noopener">🔑 Create Token ↗</a></p>
+    <button class="pri" id="connect" style="width:100%;margin-top:6px">🚀 Log in now</button>
+    <div class="stepper"><div><b>1</b>Create token</div><div><b>2</b>Paste it above</div><div><b>3</b>Push files</div></div>
+  </div>
+
+  <p id="lerr" class="err-t"></p>
+  <div class="mini-c" id="ver"></div><script>document.getElementById("ver").textContent="version "+window.__V;</script>
+  <p class="mono" style="font-size:10px;color:var(--mut)">🔐 Your login is saved only in this browser, so you log in once. Log out to remove it.</p>
+  <div style="margin-top:16px"><img class="jimg" src="images/pAv2xEd.jpeg" alt="" referrerpolicy="no-referrer" onerror="this.remove()"><span class="credit"><small>crafted by</small><b class="grad" style="font-weight:400">TAHA-BABU</b></span>
+  <div class="wa-w"><a class="wa" href="https://wa.me/8801943488192?text=Hello%2C%20I%20need%20help%20with%20github-zip-up" target="_blank" rel="noopener" aria-label="WhatsApp help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path></svg><span class="wa-b"><span class="wa-t">Need help? WhatsApp</span><small class="wa-n">03474771404</small></span></a></div></div>
+</section>
+
+<div id="app" class="hide">
+  <nav>
+    <div class="brand"><div class="scene mini"></div>
+      <div><b class="disp grad">github-zip-up</b><span class="mini-c">by TAHA KHAN</span></div></div>
+    <button id="av"><img id="avi" alt=""></button>
+    <div id="menu" class="card hide"><button id="mhb">🕘 Upload log</button><button id="mub">↩ Undo last change</button><button id="mfb">🍴 Fork / ⭐ Star</button><div class="lsw2"><button data-lg="en">EN</button><button data-lg="bn">বাং</button></div><button id="inst" class="hide">📲 Install app</button><button id="refresh">↻ Refresh</button><button class="dng" id="logout">⎋ Log out</button></div>
+  </nav>
+
+  <div id="off" class="hide">📴 Offline — showing your saved repo list</div>
+  <div id="vDash">
+    <div class="hero card tilt"><div><h2 class="disp">Hey <span id="hello" class="wv"></span> 👋</h2><div class="tagl mono"><span id="tw2"></span><span class="cur"></span></div><button class="pri" id="nrb">＋ Create repo</button></div><div class="dw" id="donut"></div></div>
+    <div id="stats"></div>
+    <div class="lang card" id="langc"><div class="sec" style="margin-top:0"><span>Languages</span><span>tap to filter</span></div><div id="lbar"></div><div id="llegend"></div></div>
+    <div class="tool"><input id="rq" type="text" placeholder="🔎 Find a repo…"><select id="fs"><option value="upd">Latest</option><option value="name">A–Z</option><option value="star">Stars</option></select><button id="vt" title="Layout">▦</button></div>
+    <div id="seg" class="card"><button data-v="all">All</button><button data-v="pub">🌐 Public</button><button data-v="pri">🔒 Private</button><button data-v="fork">🍴 Forks</button></div>
+    <div class="sec"><span>Your repos</span><span id="cnt"></span></div>
+    <div id="rlist"></div>
+  </div>
+
+  <div id="vRepo" class="hide">
+    <div class="rh"><button id="back">←</button><h2 class="disp" id="rname"></h2><select id="br"></select><button class="pri" id="zipb">🗜️ Upload ZIP</button><button id="selb" title="Select">☑</button><button id="actb">⋯</button></div>
+    <div id="tabs"><button data-tab="files">Files</button><button data-tab="iss">Issues</button><button data-tab="hist">History</button><button data-tab="info">Info</button></div>
+    <div id="pFiles"><input id="fq" type="text" placeholder="🔎 Search every file in this repo…" style="margin-bottom:10px"><div class="list hide" id="fres" style="margin-bottom:10px"></div><div class="crumb mono" id="crumb"></div>
+      <div id="selbar" class="card hide"><span id="selc"></span><label class="ck"><input type="checkbox" id="selall"> All</label><button class="dng" id="seld">Delete</button><button id="selx">Done</button></div>
+      <div class="list" id="files"></div>
+      <p class="empty" style="padding:10px;font-size:12px">Tip: drop files or a ZIP onto the list.</p></div>
+    <div id="pIss" class="hide"></div>
+    <div id="pHist" class="hide"></div>
+    <div id="pInfo" class="hide"></div>
+  </div>
+
+  <div class="foot"><span class="credit"><small>crafted by</small><b class="grad" style="font-weight:400">TAHA KHAN</b></span>
+  <div class="wa-w"><a class="wa" href="https://wa.me/8801943488192?text=Hello%2C%20I%20need%20help%20with%20github-zip-up" target="_blank" rel="noopener" aria-label="WhatsApp help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path></svg><span class="wa-b"><span class="wa-t">Need help? WhatsApp</span><small class="wa-n">03474771404</small></span></a></div></div>
+</div>
+
+<div class="modal hide" id="mAct"><div class="sheet"><div class="mh"><b>What do you want to do?</b><button class="x" data-close="">✕</button></div>
+  <div class="agrid"><button data-a="zip" style="--h:330"><i>🗜️</i>Upload ZIP</button><button data-a="file" style="--h:190"><i>🖼️</i>Upload files</button><button data-a="new" style="--h:45"><i>📝</i>New file</button><button data-a="dir" style="--h:140"><i>📂</i>New folder</button><button data-a="fol" style="--h:210"><i>📁</i>Upload folder</button><button data-a="dz" style="--h:100"><i>⬇️</i>Download ZIP</button><button data-a="br" style="--h:290"><i>🌿</i>Branches</button><button data-a="sel" style="--h:270"><i>☑️</i>Select</button><button data-a="all" style="--h:10"><i>✅</i>Select all</button></div></div></div>
+
+<div class="modal hide" id="mUp"><div class="sheet"><div class="mh"><b id="upT">Upload ZIP</b><button class="x" data-close="">✕</button></div>
+  <div class="mb"><div class="drop" id="drop"><div class="ic">📦</div><b id="dropT">Select your ZIP</b><small>or drop it here</small><div id="zsize" class="hide"></div></div>
+  <input type="file" id="fz" accept=".zip" class="hide"><input type="file" id="ff" multiple="" class="hide"><input type="file" id="fd" webkitdirectory="" multiple="" class="hide">
+  <label class="l">Send into folder (blank = root)</label><input id="upPath" type="text" placeholder="src/components">
+  <label class="l">Commit note</label><input id="upMsg" type="text" value="Upload via github-zip-up">
+  <label class="ck zo"><input type="checkbox" id="oStrip"> Flatten the top folder</label>
+  <label class="ck zo"><input type="checkbox" id="oSys"> Ignore junk (node_modules, __MACOSX, .git)</label>
+  <label class="ck"><input type="checkbox" id="oSmart" checked=""> Smart match: update files with the same name</label>
+  <label class="ck"><input type="checkbox" id="oOver" checked=""> Replace files that changed</label>
+  <label class="ck"><input type="checkbox" id="oImg"> Shrink big photos (max 2048px)</label>
+  <div id="prog" class="hide"><div id="ptxt" class="mono" style="font-size:11px"></div><div id="track"><div id="bar"></div></div><div id="flist"></div></div></div>
+  <div class="mf"><button id="upCancel">Cancel</button><button class="pri" id="upGo">⬆ Upload ZIP now</button></div></div></div>
+
+<div class="modal hide" id="mNr"><div class="sheet"><div class="mh"><b>Create repo</b><button class="x" data-close="">✕</button></div>
+  <div class="mb"><label class="l">Name</label><input id="nrn" type="text" placeholder="my-project"><label class="ck"><input type="checkbox" id="nrp"> Make it private</label><p id="nre" class="err-t"></p></div>
+  <div class="mf"><button data-close="">Cancel</button><button class="pri" id="nrgo">Create</button></div></div></div>
+
+<div class="modal hide" id="mImg"><div class="sheet"><div class="mh"><b id="imgn" style="word-break:break-all"></b><button class="x" data-close="">✕</button></div>
+  <div class="mb"><img id="imgv" alt=""><div class="bar hide" id="imgedit" style="margin-top:10px;justify-content:center"><button id="irot">↻ Rotate</button><button id="ic11">✂ 1:1</button><button id="ic169">✂ 16:9</button><button id="ic43">✂ 4:3</button><button id="irst">↺ Reset</button></div></div><div class="mf"><button class="pri hide" id="isv">💾 Save</button><a id="imgd" style="flex:1;text-decoration:none"><button class="pri" style="width:100%">⬇ Download</button></a></div></div></div>
+
+<div class="modal hide" id="mBr"><div class="sheet"><div class="mh"><b>🌿 Branches</b><button class="x" data-close="">✕</button></div><div class="mb"><label class="l">New branch from current</label><input id="bname" type="text" placeholder="feature-x"><button class="pri" id="bcreate" style="margin-top:8px;width:100%">Create &amp; switch</button><label class="l">Merge another branch into current</label><select id="msrc"></select><button id="bmerge" style="margin-top:8px;width:100%">Merge</button></div></div></div>
+<div class="modal hide" id="mDiff"><div class="sheet" style="max-width:760px"><div class="mh"><b id="dft" style="word-break:break-word"></b><button class="x" data-close="">✕</button></div><div class="mb" id="dfb"></div></div></div>
+<div class="modal hide" id="mFork"><div class="sheet"><div class="mh"><b>Fork or star a repo</b><button class="x" data-close="">✕</button></div><div class="mb"><label class="l">owner/name or GitHub link</label><input id="fkn" type="text" placeholder="octocat/Hello-World"><div class="mf" style="padding:12px 0 0;border:0"><button class="pri" id="fkgo">🍴 Fork</button><button id="fkst">⭐ Star</button></div></div></div></div>
+<div class="modal hide" id="mHist"><div class="sheet"><div class="mh"><b>🕘 Upload log</b><button class="x" data-close="">✕</button></div><div class="mb" id="hlist"></div></div></div>
+<div class="modal hide" id="mIss"><div class="sheet"><div class="mh"><b>New issue</b><button class="x" data-close="">✕</button></div><div class="mb"><label class="l">Title</label><input id="isT" type="text"><label class="l">Details</label><textarea id="isB"></textarea></div><div class="mf"><button data-close="">Cancel</button><button class="pri" id="isgo">Create</button></div></div></div>
+<div class="modal hide" id="mCol"><div class="sheet"><div class="mh"><b>Collaborators</b><button class="x" data-close="">✕</button></div><div class="mb"><div class="list" id="colL"></div><label class="l">Invite by GitHub username</label><input id="colN" type="text" placeholder="username"></div><div class="mf"><button class="pri" id="colgo">＋ Invite</button></div></div></div>
+<div id="editor" class="hide">
+  <input type="text" id="epath" placeholder="folder/file.txt">
+  <div id="ebody"><textarea id="etext" spellcheck="false"></textarea><pre id="ehl" class="hide"></pre><div id="emd" class="hide"></div></div>
+  <div class="bar"><button class="pri" id="esave">Save to GitHub</button><button class="pri hide" id="efold">Create folder</button><button id="ehb">🎨 Colors</button><button id="emb" class="hide">👁 Preview</button><button id="ecp">Copy</button><button id="edl">⬇</button><button id="ecancel">Close</button><span id="emsg" class="err-t"></span></div>
+</div>
+<div id="status" class="hide"></div>
+
+<div id="endmark"></div>
+<script src="js/app.js" defer="" onload="window.__appLoaded=1" onerror="__box('app.js could not be loaded. Upload app.js into the same folder as index.html.')"></script>
+
+
+</body></html>
